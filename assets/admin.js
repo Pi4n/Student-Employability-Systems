@@ -1,183 +1,87 @@
-/* global window, sessionStorage */
+/* global window, document, fetch */
 
-(function () {
+(async function () {
   "use strict";
 
   const App = window.App;
-  const AUTH_KEY = "ccs3402_admin_authenticated";
-  const ADMIN_USER = "admin";
-  const ADMIN_PASS = "admin123";
-
-  function isAuthenticated() {
-    return sessionStorage.getItem(AUTH_KEY) === "true";
-  }
-
-  function setAuthenticated(value) {
-    if (value) sessionStorage.setItem(AUTH_KEY, "true");
-    else sessionStorage.removeItem(AUTH_KEY);
-  }
-
-  function showLogin() {
-    App.$id("loginSection").classList.remove("d-none");
-    App.$id("adminPanel").classList.add("d-none");
-  }
-
-  function showAdmin() {
-    App.$id("loginSection").classList.add("d-none");
-    App.$id("adminPanel").classList.remove("d-none");
-    renderAll();
-  }
-
-  function clearForm() {
-    App.$id("lo_id").value = "";
-    App.$id("lo_code").value = "";
-    App.$id("domain").value = "Academic";
-    App.$id("description").value = "";
-  }
-
-  function setCounts(state) {
-    App.$id("countLO").textContent = String(state.learningOutcomes.length);
-    App.$id("countSkills").textContent = String(state.employabilitySkills.length);
-    App.$id("countLOMap").textContent = String(state.loSkillMappings.length);
-  }
-
-  function renderTable(state) {
-    const filter = App.$id("filter").value.trim().toLowerCase();
-    const rows = state.learningOutcomes
-      .slice()
-      .sort((a, b) => String(a.lo_code).localeCompare(String(b.lo_code)))
-      .filter((lo) => {
-        if (!filter) return true;
-        return String(lo.lo_code).toLowerCase().includes(filter) || String(lo.description).toLowerCase().includes(filter);
-      });
-
-    const tbody = App.$id("loTable");
-    const empty = App.$id("emptyState");
-    empty.classList.toggle("d-none", state.learningOutcomes.length > 0);
-
-    if (rows.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="4" class="text-secondary small">No matches.</td></tr>`;
-      return;
+  
+  async function reloadActiveSelections() {
+    const state = await App.get();
+    const selector = App.$id("stu_program_id");
+    if (selector && state.programs) {
+      selector.innerHTML = state.programs.map(p => `<option value="${p.program_id}">${p.program_name}</option>`).join("");
     }
-
-    tbody.innerHTML = rows
-      .map(
-        (lo) => `
-        <tr>
-          <td class="mono fw-semibold">${App.escapeHtml(lo.lo_code)}</td>
-          <td><span class="badge ${lo.domain === "Academic" ? "text-bg-primary" : "text-bg-success"}">${App.escapeHtml(lo.domain)}</span></td>
-          <td>${App.escapeHtml(lo.description)}</td>
-          <td class="text-end">
-            <button class="btn btn-sm btn-outline-primary" data-edit="${App.escapeHtml(lo.lo_id)}">Edit</button>
-            <button class="btn btn-sm btn-outline-danger" data-del="${App.escapeHtml(lo.lo_id)}">Delete</button>
-          </td>
-        </tr>
-      `,
-      )
-      .join("");
-
-    tbody.querySelectorAll("[data-edit]").forEach((btn) => {
-      btn.addEventListener("click", () => {
-        const id = btn.getAttribute("data-edit");
-        const cur = App.get().learningOutcomes.find((x) => x.lo_id === id);
-        if (!cur) return;
-        App.$id("lo_id").value = cur.lo_id;
-        App.$id("lo_code").value = cur.lo_code;
-        App.$id("domain").value = cur.domain;
-        App.$id("description").value = cur.description;
-        window.scrollTo({ top: 0, behavior: "smooth" });
-      });
-    });
-    tbody.querySelectorAll("[data-del]").forEach((btn) => {
-      btn.addEventListener("click", () => {
-        const id = btn.getAttribute("data-del");
-        if (!id) return;
-        App.set((s) => {
-          s.learningOutcomes = s.learningOutcomes.filter((x) => x.lo_id !== id);
-          s.loSkillMappings = s.loSkillMappings.filter((m) => m.lo_id !== id);
-        });
-        renderAll();
-      });
-    });
   }
 
-  function renderAll() {
-    const state = App.get();
-    setCounts(state);
-    renderTable(state);
-  }
-
-  function initAuth() {
-    App.$id("loginForm").addEventListener("submit", (e) => {
+  const studentForm = App.$id("liveStudentForm");
+  if (studentForm) {
+    studentForm.addEventListener("submit", async function (e) {
       e.preventDefault();
-      const user = App.$id("adminUser").value.trim();
-      const pass = App.$id("adminPass").value;
-      const err = App.$id("loginError");
+      const status = App.$id("adminStatus");
+      status.className = "small mt-2 text-warning";
+      status.textContent = "Injecting transaction parameters into database pipeline...";
 
-      if (user === ADMIN_USER && pass === ADMIN_PASS) {
-        setAuthenticated(true);
-        err.classList.add("d-none");
-        App.$id("adminPass").value = "";
-        showAdmin();
-      } else {
-        err.classList.remove("d-none");
-        App.$id("adminPass").value = "";
-        App.$id("adminPass").focus();
+      const payload = {
+        full_name: App.$id("stu_name").value,
+        matric_no: App.$id("stu_matric").value,
+        email: App.$id("stu_email").value,
+        program_id: Number(App.$id("stu_program_id").value)
+      };
+
+      try {
+        const res = await fetch("/.netlify/functions/manage-students", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+        if (res.ok) {
+          status.className = "small mt-2 text-success";
+          status.textContent = "Student successfully saved directly into Oracle relational memory.";
+          studentForm.reset();
+          await reloadActiveSelections();
+        } else {
+          status.className = "small mt-2 text-danger";
+          status.textContent = "SQL Execution Exception: Check table parameter constraints.";
+        }
+      } catch {
+        status.className = "small mt-2 text-danger";
+        status.textContent = "Network error communicating with the pipeline API layer.";
       }
     });
-
-    App.$id("logoutBtn").addEventListener("click", () => {
-      setAuthenticated(false);
-      App.$id("adminUser").value = "";
-      App.$id("adminPass").value = "";
-      App.$id("loginError").classList.add("d-none");
-      showLogin();
-    });
-
-    if (isAuthenticated()) showAdmin();
-    else showLogin();
   }
 
-  function initAdmin() {
-    App.$id("seedBtn").addEventListener("click", () => {
-      App.seedDemoData();
-      renderAll();
-    });
-    App.$id("resetBtn").addEventListener("click", () => {
-      App.resetAllData();
-      renderAll();
-    });
-
-    App.$id("clearBtn").addEventListener("click", () => clearForm());
-    App.$id("filter").addEventListener("input", () => renderAll());
-
-    App.$id("loForm").addEventListener("submit", (e) => {
+  const programForm = App.$id("liveProgramForm");
+  if (programForm) {
+    programForm.addEventListener("submit", async function (e) {
       e.preventDefault();
-      const lo_id = App.$id("lo_id").value || App.uid("lo");
-      const lo = {
-        lo_id,
-        lo_code: App.$id("lo_code").value.trim(),
-        domain: App.$id("domain").value,
-        description: App.$id("description").value.trim(),
+      const status = App.$id("adminStatus");
+      status.className = "small mt-2 text-warning";
+      status.textContent = "Registering new educational path structure...";
+
+      const payload = {
+        program_name: App.$id("prog_name").value,
+        faculty: App.$id("prog_faculty").value,
+        total_credits: App.$id("prog_credits").value
       };
-      if (!lo.lo_code || !lo.description) return;
 
-      App.set((s) => {
-        const idx = s.learningOutcomes.findIndex((x) => x.lo_id === lo_id);
-        if (idx >= 0) s.learningOutcomes[idx] = lo;
-        else s.learningOutcomes.push(lo);
-      });
-
-      clearForm();
-      renderAll();
+      try {
+        const res = await fetch("/.netlify/functions/manage-programs", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+        if (res.ok) {
+          status.className = "small mt-2 text-success";
+          status.textContent = "Program written natively to database records.";
+          programForm.reset();
+          await reloadActiveSelections();
+        }
+      } catch {
+        status.className = "small mt-2 text-danger";
+        status.textContent = "Server response error during configuration sync.";
+      }
     });
   }
 
-  function init() {
-    App.get();
-    initAuth();
-    initAdmin();
-  }
-
-  init();
+  await reloadActiveSelections();
 })();
