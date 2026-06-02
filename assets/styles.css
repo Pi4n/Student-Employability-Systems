@@ -677,3 +677,28 @@ hr {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* ==========================================================================
+   Live Oracle Management Additions (Purely Added)
+   ========================================================================== */
+
+.text-warning {
+  color: var(--warning) !important;
+}
+
+.text-success {
+  color: var(--success) !important;
+}
+
+.text-danger {
+  color: var(--danger) !important;
+}
+
+#liveStatus {
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.card-body .text-primary {
+  color: #60a5fa !important; /* Slightly brighter blue for dark mode headings */
+}
