@@ -11,102 +11,227 @@
     <nav class="navbar navbar-expand-lg navbar-dark navbar-app">
       <div class="container">
         <a class="navbar-brand fw-semibold" href="./index.html">Marketability App</a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#nav">
+          <span class="navbar-toggler-icon"></span>
+        </button>
         <div class="collapse navbar-collapse" id="nav">
           <ul class="navbar-nav ms-auto">
             <li class="nav-item"><a class="nav-link" href="./dashboard.html">Student Dashboard</a></li>
             <li class="nav-item"><a class="nav-link active" href="./logging.html">Activity Logging</a></li>
             <li class="nav-item"><a class="nav-link" href="./admin.html">Admin Management</a></li>
+            <li class="nav-item"><a class="nav-link" href="./about.html">About</a></li>
           </ul>
         </div>
       </div>
     </nav>
 
     <main class="container py-4">
-      <div class="row g-3 mb-4">
-        <div class="col-6 col-sm-3">
-          <div class="card p-2 text-center shadow-sm"><div class="small text-secondary">Courses</div><div class="h5 mb-0" id="countCourses">0</div></div>
-        </div>
-        <div class="col-6 col-sm-3">
-          <div class="card p-2 text-center shadow-sm"><div class="small text-secondary">Students</div><div class="h5 mb-0" id="countStudents">0</div></div>
+      <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+        <div>
+          <h1 class="h4 mb-1">Activity Logging</h1>
+          <div class="text-secondary small">Staff inputs: courses/activities/mappings. Student inputs: enrollment & co-curr registration.</div>
         </div>
       </div>
 
-      <div class="row g-4">
-        <div class="col-md-4">
-          <div class="card shadow-sm mb-4">
-            <div class="card-body">
-              <h5 class="h6 text-primary mb-3">Option 1: Add New Student Row</h5>
-              <form id="studentInputForm">
-                <div class="mb-2">
-                  <label class="form-label small">Full Name</label>
-                  <input class="form-control form-control-sm" id="new_stu_name" required />
-                </div>
-                <div class="mb-2">
-                  <label class="form-label small">Matric No</label>
-                  <input class="form-control form-control-sm" id="new_stu_matric" required />
-                </div>
-                <div class="mb-2">
-                  <label class="form-label small">Email</label>
-                  <input class="form-control form-control-sm" type="email" id="new_stu_email" required />
-                </div>
-                <button class="btn btn-success btn-sm w-100" type="submit">Save Student to Oracle</button>
-              </form>
-            </div>
-          </div>
+      <ul class="nav nav-pills mb-3" id="tabs" role="tablist">
+        <li class="nav-item" role="presentation">
+          <button class="nav-link active" id="staff-tab" data-bs-toggle="pill" data-bs-target="#staff" type="button" role="tab">Staff module</button>
+        </li>
+        <li class="nav-item" role="presentation">
+          <button class="nav-link" id="student-tab" data-bs-toggle="pill" data-bs-target="#student" type="button" role="tab">Student module</button>
+        </li>
+      </ul>
 
-          <div class="card shadow-sm mb-4">
-            <div class="card-body">
-              <h5 class="h6 text-info mb-3">Option 2: Log Academic Course Enrollment</h5>
-              <form id="enrollmentForm">
-                <div class="mb-2">
-                  <label class="form-label small">Select Student Target</label>
-                  <select class="form-select form-select-sm" id="enr_student"></select>
+      <div class="tab-content">
+        <div class="tab-pane fade show active" id="staff" role="tabpanel" aria-labelledby="staff-tab" tabindex="0">
+          <div class="row g-3">
+            <div class="col-lg-4">
+              <div class="card shadow-sm mb-3">
+                <div class="card-body">
+                  <div class="fw-semibold text-success mb-2">Add New Student Account</div>
+                  <form id="studentForm" class="row g-2">
+                    <div class="col-12">
+                      <label class="form-label small">Full Name</label>
+                      <input class="form-control form-control-sm" id="stu_name" required />
+                    </div>
+                    <div class="col-md-6">
+                      <label class="form-label small">Matric No</label>
+                      <input class="form-control form-control-sm" id="stu_matric" required />
+                    </div>
+                    <div class="col-md-6">
+                      <label class="form-label small">Email</label>
+                      <input class="form-control form-control-sm" type="email" id="stu_email" required />
+                    </div>
+                    <div class="col-12 mt-2">
+                      <button class="btn btn-success btn-sm w-100" type="submit">Save Student</button>
+                    </div>
+                  </form>
                 </div>
-                <div class="mb-2">
-                  <label class="form-label small">Course ID / Reference</label>
-                  <input class="form-control form-control-sm" type="number" id="enr_course_id" placeholder="e.g. 101" required />
+              </div>
+
+              <div class="card shadow-sm">
+                <div class="card-body">
+                  <div class="fw-semibold text-warning mb-2">Add Academic Program</div>
+                  <form id="programForm" class="row g-2">
+                    <div class="col-12">
+                      <label class="form-label small">Program Name</label>
+                      <input class="form-control form-control-sm" id="prog_name" placeholder="e.g. Computer Science" required />
+                    </div>
+                    <div class="col-12 mt-2">
+                      <button class="btn btn-warning btn-sm w-100" type="submit">Save Program</button>
+                    </div>
+                  </form>
                 </div>
-                <div class="mb-2">
-                  <label class="form-label small">Semester</label>
-                  <input class="form-control form-control-sm" id="enr_semester" placeholder="Sem 1" required />
+              </div>
+            </div>
+
+            <div class="col-lg-4">
+              <div class="card shadow-sm">
+                <div class="card-body">
+                  <div class="fw-semibold mb-2">Add / Edit Course</div>
+                  <form id="courseForm" class="row g-2">
+                    <input type="hidden" id="course_id" />
+                    <div class="col-md-5">
+                      <label class="form-label small">Course code</label>
+                      <input class="form-control form-control-sm" id="course_code" placeholder="e.g., CSW101" required />
+                    </div>
+                    <div class="col-md-7">
+                      <label class="form-label small">Course name</label>
+                      <input class="form-control form-control-sm" id="course_name" placeholder="e.g., Web Systems" required />
+                    </div>
+                    <div class="col-md-6">
+                      <label class="form-label small">Type</label>
+                      <select class="form-select form-select-sm" id="course_type">
+                        <option>Core</option>
+                        <option>Elective</option>
+                      </select>
+                    </div>
+                    <div class="col-md-6">
+                      <label class="form-label small">Credit hours</label>
+                      <input class="form-control form-control-sm" id="credit_hours" type="number" min="0" step="1" value="3" required />
+                    </div>
+                    <div class="col-12">
+                      <label class="form-label small">Program Area</label>
+                      <select class="form-select form-select-sm" id="programSelect"></select>
+                    </div>
+                    <div class="col-12 d-flex gap-2 mt-2">
+                      <button class="btn btn-primary btn-sm flex-grow-1" type="submit">Save course</button>
+                      <button class="btn btn-outline-secondary btn-sm" type="button" id="courseClearBtn">Clear</button>
+                    </div>
+                  </form>
                 </div>
-                <div class="mb-2">
-                  <label class="form-label small">Status</label>
-                  <select class="form-select form-select-sm" id="enr_status">
-                    <option value="Completed">Completed</option>
-                    <option value="In Progress">In Progress</option>
-                  </select>
+              </div>
+
+              <div class="card shadow-sm mt-3">
+                <div class="card-body">
+                  <div class="fw-semibold mb-2">Add / Edit Co-curricular Activity</div>
+                  <form id="activityForm" class="row g-2">
+                    <input type="hidden" id="cocurr_id" />
+                    <div class="col-md-7">
+                      <label class="form-label small">Activity name</label>
+                      <input class="form-control form-control-sm" id="activity_name" required />
+                    </div>
+                    <div class="col-md-5">
+                      <label class="form-label small">Organizer</label>
+                      <input class="form-control form-control-sm" id="organizer" required />
+                    </div>
+                    <div class="col-md-5">
+                      <label class="form-label small">Category</label>
+                      <input class="form-control form-control-sm" id="category" placeholder="Club..." required />
+                    </div>
+                    <div class="col-md-4">
+                      <label class="form-label small">Credit?</label>
+                      <select class="form-select form-select-sm" id="is_credit_bearing">
+                        <option value="false">No</option>
+                        <option value="true">Yes</option>
+                      </select>
+                    </div>
+                    <div class="col-md-3">
+                      <label class="form-label small">Credits</label>
+                      <input class="form-control form-control-sm" id="activity_credit_hours" type="number" min="0" value="0" required />
+                    </div>
+                    <div class="col-12 d-flex gap-2 mt-2">
+                      <button class="btn btn-primary btn-sm flex-grow-1" type="submit">Save activity</button>
+                    </div>
+                  </form>
                 </div>
-                <div class="mb-3">
-                  <label class="form-label small">Grade</label>
-                  <select class="form-select form-select-sm" id="enr_grade">
-                    <option value="A+">A+</option><option value="A">A</option><option value="B+">B+</option><option value="C">C</option><option value="F">F</option>
-                  </select>
+              </div>
+            </div>
+
+            <div class="col-lg-4">
+              <div class="card shadow-sm">
+                <div class="card-body">
+                  <div class="fw-semibold mb-2">Current Database Metrics</div>
+                  <div class="d-flex flex-wrap gap-2">
+                    <span class="pill bg-secondary px-2 py-1 rounded small"><span class="text-light">Courses:</span> <span class="mono fw-bold" id="countCourses">0</span></span>
+                    <span class="pill bg-secondary px-2 py-1 rounded small"><span class="text-light">Activities:</span> <span class="mono fw-bold" id="countActivities">0</span></span>
+                    <span class="pill bg-secondary px-2 py-1 rounded small"><span class="text-light">Students:</span> <span class="mono fw-bold" id="countStudents">0</span></span>
+                  </div>
                 </div>
-                <button class="btn btn-primary btn-sm w-100" type="submit">Commit Enrollment</button>
-              </form>
-              <div id="logStatus" class="small mt-2"></div>
+              </div>
             </div>
           </div>
         </div>
 
-        <div class="col-md-8">
-          <div class="card shadow-sm h-100">
-            <div class="card-body">
-              <h5 class="h6 mb-3">Live Course Enrollment Ledger</h5>
-              <div class="table-responsive">
-                <table class="table table-sm align-middle">
-                  <thead>
-                    <tr>
-                      <th>Matric</th>
-                      <th>Course ID</th>
-                      <th>Semester</th>
-                      <th>Status</th>
-                      <th>Grade</th>
-                    </tr>
-                  </thead>
-                  <tbody id="enrTable"></tbody>
-                </table>
+        <div class="tab-pane fade" id="student" role="tabpanel" aria-labelledby="student-tab" tabindex="0">
+          <div class="row g-3">
+            <div class="col-lg-6">
+              <div class="card shadow-sm">
+                <div class="card-body">
+                  <div class="fw-semibold mb-2">Register Course Enrollment</div>
+                  <form id="enrollmentForm" class="row g-2">
+                    <div class="col-md-6">
+                      <label class="form-label">Student</label>
+                      <select class="form-select" id="enr_student"></select>
+                    </div>
+                    <div class="col-md-6">
+                      <label class="form-label">Course</label>
+                      <select class="form-select" id="enr_course"></select>
+                    </div>
+                    <div class="col-md-4">
+                      <label class="form-label">Semester</label>
+                      <input class="form-control" id="enr_semester" placeholder="e.g., 2026S1" required />
+                    </div>
+                    <div class="col-md-4">
+                      <label class="form-label">Status</label>
+                      <select class="form-select" id="enr_status">
+                        <option>In Progress</option>
+                        <option>Completed</option>
+                      </select>
+                    </div>
+                    <div class="col-md-4">
+                      <label class="form-label">Grade</label>
+                      <select class="form-select" id="enr_grade">
+                        <option>A+</option><option>A</option><option>B</option><option>C</option><option>F</option>
+                      </select>
+                    </div>
+                    <div class="col-12 mt-2">
+                      <button class="btn btn-primary w-100" type="submit">Add enrollment</button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            </div>
+
+            <div class="col-12">
+              <div class="card shadow-sm mt-3">
+                <div class="card-body">
+                  <div class="fw-semibold mb-2">Enrollment Ledger Records</div>
+                  <div class="table-responsive">
+                    <table class="table table-sm align-middle">
+                      <thead>
+                        <tr>
+                          <th>Student Matrix</th>
+                          <th>Course</th>
+                          <th>Sem</th>
+                          <th>Status</th>
+                          <th>Grade</th>
+                        </tr>
+                      </thead>
+                      <tbody id="enrTable"></tbody>
+                    </table>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
