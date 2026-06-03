@@ -2,10 +2,8 @@
 /**
  * CCS3402 Marketability App — Core Application Module
  * 
- * PRODUCTION: routes to live Oracle Database via Netlify Serverless Functions.
- * LOCAL DEV (VS Code): auto-falls back to mock-backend.js using localStorage.
- *   Detection: tries /.netlify/functions/get-state; if it 404s or errors,
- *   switches to MOCK MODE and shows a banner.
+ * Migrated from localStorage to Live Oracle Database via Netlify Serverless Functions.
+ * All data operations are asynchronous and route through /.netlify/functions/* endpoints.
  * 
  * Exposed globally as window.App
  */
@@ -16,9 +14,9 @@
   // ============================================================
   // CONFIGURATION
   // ============================================================
-
+  
   const API_BASE = "/.netlify/functions";
-
+  
   const ENDPOINTS = {
     getState: `${API_BASE}/get-state`,
     manageStudents: `${API_BASE}/manage-students`,
@@ -30,96 +28,39 @@
     manageSkills: `${API_BASE}/manage-skills`
   };
 
-  // In-memory cache (NOT persisted)
+  // In-memory cache for the current session (NOT persisted)
   let _stateCache = null;
   let _fetchPromise = null;
-  let _mockMode = null; // null = not yet detected; true/false once known
 
   // ============================================================
-  // MOCK MODE DETECTION & BANNER
+  // STATE MANAGEMENT - Live Oracle DB via Netlify Functions
   // ============================================================
 
   /**
-   * Detects whether we're running against real Netlify functions or
-   * a local environment where they aren't available. Cached after first call.
+   * Returns an empty state structure for graceful handling of
+   * a clean, empty database (zero rows).
    */
-  async function detectMockMode() {
-    if (_mockMode !== null) return _mockMode;
-
-    // If MockBackend not loaded at all, we can only use real
-    if (typeof window.MockBackend === "undefined") {
-      _mockMode = false;
-      return _mockMode;
-    }
-
-    try {
-      const response = await fetch(ENDPOINTS.getState, {
-        method: "GET",
-        headers: { "Content-Type": "application/json" }
-      });
-      // 404 means functions not deployed/running -> use mock
-      if (response.status === 404) {
-        _mockMode = true;
-      } else {
-        // Real backend responded (200/500/etc.) -> use it
-        _mockMode = false;
-      }
-    } catch (err) {
-      // Network error (CORS, file://, no server) -> use mock
-      _mockMode = true;
-    }
-
-    if (_mockMode) showMockBanner();
-    return _mockMode;
-  }
-
-  function showMockBanner() {
-    if (document.getElementById("mockModeBanner")) return;
-    const banner = document.createElement("div");
-    banner.id = "mockModeBanner";
-    banner.style.cssText = `
-      position: fixed; top: 0; left: 0; right: 0; z-index: 10000;
-      background: linear-gradient(135deg, #f59e0b 0%, #f97316 100%);
-      color: #1f2937; font-weight: 600; font-size: 0.875rem;
-      padding: 8px 16px; text-align: center;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-      font-family: "Inter", system-ui, sans-serif;
-    `;
-    banner.innerHTML = `
-      MOCK MODE — Data is stored in your browser's localStorage only.
-      Deploy to Netlify with Oracle credentials for live data.
-      <button id="mockResetBtn" style="margin-left: 12px; background: rgba(31,41,55,0.2); border: 1px solid rgba(31,41,55,0.4); color: inherit; padding: 2px 10px; border-radius: 6px; cursor: pointer; font-size: 0.8rem;">Reset local data</button>
-    `;
-    document.body.appendChild(banner);
-    document.body.style.paddingTop = "44px";
-
-    document.getElementById("mockResetBtn").addEventListener("click", () => {
-      if (confirm("Clear all mock data from browser storage?")) {
-        window.MockBackend.clearAll();
-        invalidateCache();
-        location.reload();
-      }
-    });
-  }
-
-  // ============================================================
-  // EMPTY STATE
-  // ============================================================
-
   function emptyState() {
     return {
       meta: { version: 1, fetchedAt: new Date().toISOString() },
-      programs: [], courses: [], students: [],
-      learningOutcomes: [], employabilitySkills: [], loSkillMappings: [],
-      coCurriculum: [], coCurrSkillMappings: [],
-      enrollments: [], studentCoCurriculum: []
+      programs: [],
+      courses: [],
+      students: [],
+      learningOutcomes: [],
+      employabilitySkills: [],
+      loSkillMappings: [],
+      coCurriculum: [],
+      coCurrSkillMappings: [],
+      enrollments: [],
+      studentCoCurriculum: []
     };
   }
 
-  // ============================================================
-  // STATE FETCHING
-  // ============================================================
-
+  /**
+   * Fetches the complete application state from the live Oracle database.
+   * Routes through /.netlify/functions/get-state and handles transformation server-side.
+   * Returns a deep copy to prevent accidental mutation.
+   */
   async function get(forceRefresh = false) {
     if (_stateCache && !forceRefresh) {
       return JSON.parse(JSON.stringify(_stateCache));
@@ -131,83 +72,61 @@
     }
 
     _fetchPromise = (async () => {
-      const useMock = await detectMockMode();
-
-      if (useMock) {
-        try {
-          _stateCache = window.MockBackend.route("/.netlify/functions/get-state", "GET", null);
-        } catch (err) {
-          console.error("Mock error:", err);
-          _stateCache = emptyState();
-        }
-        return _stateCache;
-      }
-
-      // Real Netlify backend
       try {
         const response = await fetch(ENDPOINTS.getState, {
           method: "GET",
           headers: { "Content-Type": "application/json" }
         });
+
         if (!response.ok) {
-          console.error("Failed to fetch state:", response.status);
+          console.error("Failed to fetch state:", response.status, response.statusText);
           _stateCache = emptyState();
           return _stateCache;
         }
-        _stateCache = (await response.json()) || emptyState();
+
+        const data = await response.json();
+        _stateCache = data || emptyState();
         return _stateCache;
       } catch (error) {
         console.error("Network error fetching state:", error);
         _stateCache = emptyState();
         return _stateCache;
+      } finally {
+        _fetchPromise = null;
       }
     })();
 
-    try {
-      const result = await _fetchPromise;
-      return JSON.parse(JSON.stringify(result));
-    } finally {
-      _fetchPromise = null;
-    }
+    const result = await _fetchPromise;
+    return JSON.parse(JSON.stringify(result));
   }
 
   function invalidateCache() {
     _stateCache = null;
   }
 
-  // ============================================================
-  // POST HELPER (auto-routes to mock or real)
-  // ============================================================
-
+  /**
+   * Generic POST helper for serverless function calls
+   */
   async function postJson(endpoint, payload) {
-    const useMock = await detectMockMode();
-
-    if (useMock) {
-      try {
-        const result = window.MockBackend.route(endpoint, "POST", payload);
-        invalidateCache();
-        return result;
-      } catch (err) {
-        throw new Error(err.message || "Mock operation failed");
-      }
-    }
-
-    // Real backend
     const response = await fetch(endpoint, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload)
     });
+
     const data = await response.json().catch(() => ({}));
+
     if (!response.ok) {
-      throw new Error(data.error || data.message || `Request failed: ${response.status}`);
+      const errorMsg = data.error || data.message || `Request failed: ${response.status}`;
+      throw new Error(errorMsg);
     }
+
     invalidateCache();
     return data;
   }
 
   // ============================================================
-  // ENTITY MANAGERS
+  // ENTITY MANAGEMENT
   // ============================================================
 
   const Students = {
@@ -245,7 +164,7 @@
   };
 
   // ============================================================
-  // MARKETABILITY SCORING
+  // MARKETABILITY SCORING — Pure functions
   // ============================================================
 
   const GRADE_POINTS = {
@@ -370,19 +289,27 @@
       document.body.appendChild(container);
     }
     const colorMap = {
-      success: { bg: "rgba(34,197,94,0.18)", border: "#22c55e", color: "#4ade80" },
-      danger: { bg: "rgba(239,68,68,0.18)", border: "#ef4444", color: "#f87171" },
-      info: { bg: "rgba(59,130,246,0.18)", border: "#3b82f6", color: "#93c5fd" }
+      success: { bg: "rgba(34, 197, 94, 0.18)", border: "#22c55e", color: "#4ade80" },
+      danger: { bg: "rgba(239, 68, 68, 0.18)", border: "#ef4444", color: "#f87171" },
+      info: { bg: "rgba(59, 130, 246, 0.18)", border: "#3b82f6", color: "#93c5fd" }
     };
-    const c = colorMap[type] || colorMap.info;
+    const colors = colorMap[type] || colorMap.info;
+
     const toast = document.createElement("div");
     toast.style.cssText = `
-      background:${c.bg};border:1px solid ${c.border};color:${c.color};
-      padding:12px 16px;border-radius:10px;margin-bottom:10px;
-      font-size:0.9rem;box-shadow:0 4px 14px rgba(0,0,0,0.3);
-      backdrop-filter:blur(8px);`;
+      background: ${colors.bg};
+      border: 1px solid ${colors.border};
+      color: ${colors.color};
+      padding: 12px 16px;
+      border-radius: 10px;
+      margin-bottom: 10px;
+      font-size: 0.9rem;
+      box-shadow: 0 4px 14px rgba(0,0,0,0.3);
+      backdrop-filter: blur(8px);
+    `;
     toast.textContent = message;
     container.appendChild(toast);
+
     setTimeout(() => {
       toast.style.opacity = "0";
       toast.style.transition = "opacity 0.3s";
@@ -400,7 +327,6 @@
     LearningOutcomes, Enrollments, Cocurriculum,
     gradeTo01, computeMarketability,
     escapeHtml, $id, $idOptional, notify,
-    ENDPOINTS,
-    isMockMode: () => _mockMode === true
+    ENDPOINTS
   };
 })();
