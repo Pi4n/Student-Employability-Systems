@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Admin Management</title>
+    <title>Activity Logging</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
     <link href="assets/styles.css" rel="stylesheet" />
   </head>
@@ -14,74 +14,78 @@
         <div class="collapse navbar-collapse" id="nav">
           <ul class="navbar-nav ms-auto">
             <li class="nav-item"><a class="nav-link" href="./dashboard.html">Student Dashboard</a></li>
-            <li class="nav-item"><a class="nav-link" href="./logging.html">Activity Logging</a></li>
-            <li class="nav-item"><a class="nav-link active" href="./admin.html">Admin Management</a></li>
+            <li class="nav-item"><a class="nav-link active" href="./logging.html">Activity Logging</a></li>
+            <li class="nav-item"><a class="nav-link" href="./admin.html">Admin Management</a></li>
           </ul>
         </div>
       </div>
     </nav>
 
     <main class="container py-4">
-      <div id="loginSection" class="row justify-content-center login-wrap">
-        <div class="col-md-4">
-          <div class="card shadow">
-            <div class="card-body">
-              <h1 class="h5 mb-3">Admin Authentication</h1>
-              <form id="loginForm">
-                <div class="mb-2">
-                  <label class="form-label small">Username</label>
-                  <input class="form-control" id="adminUser" required />
-                </div>
-                <div class="mb-3">
-                  <label class="form-label small">Password</label>
-                  <input class="form-control" type="password" id="adminPass" required />
-                </div>
-                <div id="loginError" class="alert alert-danger small py-2 d-none">Invalid credentials.</div>
-                <button class="btn btn-primary w-100 btn-sm" type="submit">Login</button>
-              </form>
-            </div>
-          </div>
+      <div class="row g-3 mb-4">
+        <div class="col-6 col-sm-3">
+          <div class="card p-2 text-center shadow-sm"><div class="small text-secondary">Courses</div><div class="h5 mb-0" id="countCourses">0</div></div>
+        </div>
+        <div class="col-6 col-sm-3">
+          <div class="card p-2 text-center shadow-sm"><div class="small text-secondary">Students</div><div class="h5 mb-0" id="countStudents">0</div></div>
         </div>
       </div>
 
-      <div id="adminPanel" class="row g-4 d-none">
+      <div class="row g-4">
         <div class="col-md-4">
-          <div class="card shadow-sm mb-3">
+          <div class="card shadow-sm mb-4">
             <div class="card-body">
-              <div class="d-flex justify-content-between align-items-center">
-                <span class="small text-secondary">Learning Outcomes</span>
-                <span class="badge text-bg-primary fs-6" id="countLO">0</span>
-              </div>
+              <h5 class="h6 text-primary mb-3">Option 1: Add New Student Row</h5>
+              <form id="studentInputForm">
+                <div class="mb-2">
+                  <label class="form-label small">Full Name</label>
+                  <input class="form-control form-control-sm" id="new_stu_name" required />
+                </div>
+                <div class="mb-2">
+                  <label class="form-label small">Matric No</label>
+                  <input class="form-control form-control-sm" id="new_stu_matric" required />
+                </div>
+                <div class="mb-2">
+                  <label class="form-label small">Email</label>
+                  <input class="form-control form-control-sm" type="email" id="new_stu_email" required />
+                </div>
+                <button class="btn btn-success btn-sm w-100" type="submit">Save Student to Oracle</button>
+              </form>
             </div>
           </div>
 
-          <div class="card shadow-sm">
+          <div class="card shadow-sm mb-4">
             <div class="card-body">
-              <h2 class="h6 mb-3" id="formTitle">Manage Learning Outcome</h2>
-              <form id="loForm">
-                <input type="hidden" id="lo_id" />
+              <h5 class="h6 text-info mb-3">Option 2: Log Academic Course Enrollment</h5>
+              <form id="enrollmentForm">
                 <div class="mb-2">
-                  <label class="form-label small">Outcome Code</label>
-                  <input class="form-control form-control-sm" id="lo_code" placeholder="e.g. LO1" required />
+                  <label class="form-label small">Select Student Target</label>
+                  <select class="form-select form-select-sm" id="enr_student"></select>
                 </div>
                 <div class="mb-2">
-                  <label class="form-label small">Domain</label>
-                  <select class="form-select form-select-sm" id="domain">
-                    <option value="Academic">Academic</option>
-                    <option value="Technical">Technical</option>
-                    <option value="Social">Social</option>
+                  <label class="form-label small">Course ID / Reference</label>
+                  <input class="form-control form-control-sm" type="number" id="enr_course_id" placeholder="e.g. 101" required />
+                </div>
+                <div class="mb-2">
+                  <label class="form-label small">Semester</label>
+                  <input class="form-control form-control-sm" id="enr_semester" placeholder="Sem 1" required />
+                </div>
+                <div class="mb-2">
+                  <label class="form-label small">Status</label>
+                  <select class="form-select form-select-sm" id="enr_status">
+                    <option value="Completed">Completed</option>
+                    <option value="In Progress">In Progress</option>
                   </select>
                 </div>
                 <div class="mb-3">
-                  <label class="form-label small">Description</label>
-                  <textarea class="form-control form-control-sm" id="description" rows="3" required></textarea>
+                  <label class="form-label small">Grade</label>
+                  <select class="form-select form-select-sm" id="enr_grade">
+                    <option value="A+">A+</option><option value="A">A</option><option value="B+">B+</option><option value="C">C</option><option value="F">F</option>
+                  </select>
                 </div>
-                <div class="d-flex gap-2">
-                  <button class="btn btn-primary btn-sm flex-grow-1" type="submit">Save to Database</button>
-                  <button class="btn btn-outline-secondary btn-sm" type="button" id="clearBtn">Clear</button>
-                </div>
+                <button class="btn btn-primary btn-sm w-100" type="submit">Commit Enrollment</button>
               </form>
-              <div id="adminStatus" class="small mt-2"></div>
+              <div id="logStatus" class="small mt-2"></div>
             </div>
           </div>
         </div>
@@ -89,21 +93,19 @@
         <div class="col-md-8">
           <div class="card shadow-sm h-100">
             <div class="card-body">
-              <div class="d-flex justify-content-between align-items-center">
-                <div class="fw-semibold">Learning Outcomes List</div>
-                <input class="form-control form-control-sm" id="filter" placeholder="Search code/description..." style="max-width: 220px" />
-              </div>
-              <hr class="my-3" />
+              <h5 class="h6 mb-3">Live Course Enrollment Ledger</h5>
               <div class="table-responsive">
-                <table class="table table-sm table-hover align-middle">
+                <table class="table table-sm align-middle">
                   <thead>
                     <tr>
-                      <th>Code</th>
-                      <th>Domain</th>
-                      <th>Description</th>
+                      <th>Matric</th>
+                      <th>Course ID</th>
+                      <th>Semester</th>
+                      <th>Status</th>
+                      <th>Grade</th>
                     </tr>
                   </thead>
-                  <tbody id="loTable"></tbody>
+                  <tbody id="enrTable"></tbody>
                 </table>
               </div>
             </div>
@@ -113,6 +115,6 @@
     </main>
 
     <script src="assets/app.js"></script>
-    <script src="assets/admin.js"></script>
+    <script src="assets/logging.js"></script>
   </body>
 </html>
