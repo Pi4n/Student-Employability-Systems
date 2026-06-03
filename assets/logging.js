@@ -11,40 +11,35 @@
   }
 
   async function syncAndRenderUI() {
+    // Pull fresh runtime data state payload from backend
     const state = await App.get();
 
-    // 1. Update UI panel metrics counter indicators
+    // 1. Render data metric badges
     if (App.$id("countCourses")) App.$id("countCourses").textContent = String(state.courses?.length || 0);
-    if (App.$id("countSkills")) App.$id("countSkills").textContent = String(state.employabilitySkills?.length || 0);
+    if (App.$id("countActivities")) App.$id("countActivities").textContent = String(state.coCurriculum?.length || 0);
     if (App.$id("countStudents")) App.$id("countStudents").textContent = String(state.students?.length || 0);
 
-    // 2. Populate relational dropdown options based on your original logging.html configuration
-    const programSel = App.$id("programSelect");
-    if (programSel && state.programs) {
-      programSel.innerHTML = state.programs.map((p) => option(p.program_name, p.program_id)).join("");
+    // 2. Map select fields options securely
+    const progSel = App.$id("programSelect");
+    if (progSel && state.programs) {
+      progSel.innerHTML = state.programs.map(p => option(p.program_name, p.program_id)).join("");
     }
 
     const enrStudent = App.$id("enr_student");
-    const ccStudent = App.$id("cc_student");
-    if (state.students && state.students.length > 0) {
-      const studentOptions = state.students.map((s) => option(`${s.full_name} (${s.matric_no})`, s.student_id)).join("");
-      if (enrStudent) enrStudent.innerHTML = studentOptions;
-      if (ccStudent) ccStudent.innerHTML = studentOptions;
-      if (App.$id("emptyState")) App.$id("emptyState").classList.add("d-none");
-    } else {
-      if (App.$id("emptyState")) App.$id("emptyState").classList.remove("d-none");
+    if (enrStudent && state.students) {
+      enrStudent.innerHTML = state.students.map(s => option(`${s.full_name} (${s.matric_no})`, s.student_id)).join("");
     }
 
     const enrCourse = App.$id("enr_course");
     if (enrCourse && state.courses) {
-      enrCourse.innerHTML = state.courses.map((c) => option(`${c.course_code} — ${c.course_name}`, c.course_id)).join("");
+      enrCourse.innerHTML = state.courses.map(c => option(`${c.course_code} — ${c.course_name}`, c.course_id)).join("");
     }
 
-    // 3. Render the core Student Enrollment Data log matrix table output
+    // 3. Render live enrollment log list rows
     const enrTbody = App.$id("enrTable");
     if (enrTbody) {
       if (!state.enrollments || state.enrollments.length === 0) {
-        enrTbody.innerHTML = `<tr><td colspan="6" class="text-secondary small">No transactional logs saved in your live Oracle tables.</td></tr>`;
+        enrTbody.innerHTML = `<tr><td colspan="5" class="text-secondary small text-center">No live database logs located.</td></tr>`;
       } else {
         const studentMap = new Map(state.students.map(s => [s.student_id, s]));
         const courseMap = new Map(state.courses.map(c => [c.course_id, c]));
@@ -54,24 +49,93 @@
           const crs = courseMap.get(e.course_id);
           return `
             <tr>
-              <td>${App.escapeHtml(stu?.matric_no || "—")}</td>
-              <td>${App.escapeHtml(crs?.course_code || "—")}</td>
-              <td class="mono">${App.escapeHtml(e.semester || "—")}</td>
-              <td><span class="badge bg-opacity-10 text-info">${App.escapeHtml(e.status || "—")}</span></td>
-              <td class="mono fw-bold">${App.escapeHtml(e.grade || "—")}</td>
-              <td class="text-end text-muted small">[Live Transaction]</td>
+              <td>${App.escapeHtml(stu?.matric_no || "ID: " + e.student_id)}</td>
+              <td>${App.escapeHtml(crs?.course_code || "ID: " + e.course_id)}</td>
+              <td>${App.escapeHtml(e.semester)}</td>
+              <td><span class="badge text-bg-info">${App.escapeHtml(e.status)}</span></td>
+              <td class="mono fw-bold">${App.escapeHtml(e.grade)}</td>
             </tr>`;
         }).join("");
       }
     }
   }
 
-  // Bind execution interceptor directly to the core student input form
+  // Intercept creating brand new students
+  const studentForm = App.$id("studentForm");
+  if (studentForm) {
+    studentForm.addEventListener("submit", async function (e) {
+      e.preventDefault();
+      const payload = {
+        full_name: App.$id("stu_name").value.trim(),
+        matric_no: App.$id("stu_matric").value.trim(),
+        email: App.$id("stu_email").value.trim()
+      };
+
+      try {
+        const res = await fetch("/.netlify/functions/manage-students", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+        if (res.ok) {
+          studentForm.reset();
+          await syncAndRenderUI();
+        }
+      } catch (err) { console.error(err); }
+    });
+  }
+
+  // Intercept creating programs
+  const programForm = App.$id("programForm");
+  if (programForm) {
+    programForm.addEventListener("submit", async function (e) {
+      e.preventDefault();
+      try {
+        const res = await fetch("/.netlify/functions/manage-programs", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ program_name: App.$id("prog_name").value.trim() })
+        });
+        if (res.ok) {
+          programForm.reset();
+          await syncAndRenderUI();
+        }
+      } catch (err) { console.error(err); }
+    });
+  }
+
+  // Intercept creating courses
+  const courseForm = App.$id("courseForm");
+  if (courseForm) {
+    courseForm.addEventListener("submit", async function (e) {
+      e.preventDefault();
+      const payload = {
+        course_code: App.$id("course_code").value.trim(),
+        course_name: App.$id("course_name").value.trim(),
+        course_type: App.$id("course_type").value,
+        credit_hours: Number(App.$id("credit_hours").value),
+        program_id: App.$id("programSelect").value
+      };
+
+      try {
+        const res = await fetch("/.netlify/functions/manage-courses", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+        if (res.ok) {
+          courseForm.reset();
+          await syncAndRenderUI();
+        }
+      } catch (err) { console.error(err); }
+    });
+  }
+
+  // Intercept committing enrollments
   const enrollmentForm = App.$id("enrollmentForm");
   if (enrollmentForm) {
     enrollmentForm.addEventListener("submit", async function (e) {
       e.preventDefault();
-
       const payload = {
         student_id: App.$id("enr_student").value,
         course_id: App.$id("enr_course").value,
@@ -80,27 +144,20 @@
         grade: App.$id("enr_grade").value
       };
 
-      if (!payload.student_id || !payload.course_id || !payload.semester) return;
-
       try {
         const res = await fetch("/.netlify/functions/manage-logs", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload)
         });
-
         if (res.ok) {
           enrollmentForm.reset();
           await syncAndRenderUI();
-        } else {
-          alert("Could not append row transaction to database schema. Verify data values.");
         }
-      } catch (err) {
-        console.error("Transmission error:", err);
-      }
+      } catch (err) { console.error(err); }
     });
   }
 
-  // Load configuration on entry
+  // Run initial data load
   await syncAndRenderUI();
 })();
