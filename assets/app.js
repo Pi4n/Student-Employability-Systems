@@ -23,7 +23,9 @@
     manageCourses: `${API_BASE}/manage-courses`,
     manageLearningOutcomes: `${API_BASE}/manage-learning-outcomes`,
     manageEnrollments: `${API_BASE}/manage-enrollments`,
-    manageCocurriculum: `${API_BASE}/manage-cocurriculum`
+    manageCocurriculum: `${API_BASE}/manage-cocurriculum`,
+    managePrograms: `${API_BASE}/manage-programs`,
+    manageSkills: `${API_BASE}/manage-skills`
   };
 
   // In-memory cache for the current session (NOT persisted)
@@ -144,6 +146,18 @@
   const Students = {
     async create(student) {
       return postJson(ENDPOINTS.manageStudents, student);
+    }
+  };
+
+  const Programs = {
+    async create(program) {
+      return postJson(ENDPOINTS.managePrograms, program);
+    }
+  };
+
+  const Skills = {
+    async create(skill) {
+      return postJson(ENDPOINTS.manageSkills, skill);
     }
   };
 
@@ -371,6 +385,8 @@
 
     // Entity operations (async)
     Students,
+    Programs,
+    Skills,
     Courses,
     LearningOutcomes,
     Enrollments,
