@@ -1,0 +1,31 @@
+# Netlify deployment configuration
+# Production-ready setup for Holistic Student Marketability application
+
+[build]
+  # Static site - no build command needed
+  publish = "."
+  functions = "netlify/functions"
+
+[functions]
+  # Node.js runtime for Oracle DB integration
+  node_bundler = "esbuild"
+  external_node_modules = ["oracledb"]
+
+# Optional: redirect /api/* to /.netlify/functions/* for cleaner URLs
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/:splat"
+  status = 200
+
+# Security headers
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+
+# Environment variables required (set in Netlify UI):
+# ORACLE_USER
+# ORACLE_PASSWORD
+# ORACLE_CONN_STRING
